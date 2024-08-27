@@ -1,11 +1,8 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-canvas.width = 800;
-canvas.height = 600;
-
 const laneCount = 3;
-const laneWidth = canvas.width / laneCount;
+let laneWidth = canvas.width / laneCount;
 const playerSize = 50;
 const obstacleSize = 50;
 const obstacleSpeed = 5;
@@ -46,6 +43,30 @@ document.addEventListener("keyup", (e) => {
     if (e.key === "ArrowLeft") moveLeft = false;
     if (e.key === "ArrowRight") moveRight = false;
 });
+
+canvas.addEventListener('touchstart', function(e) {
+    const touchX = e.changedTouches[0].clientX;
+    if (touchX < canvas.width / 2) {
+        moveLeft = true;
+    } else {
+        moveRight = true;
+    }
+});
+
+canvas.addEventListener('touchend', function() {
+    moveLeft = false;
+    moveRight = false;
+});
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    laneWidth = canvas.width / laneCount;
+    playerX = playerLane * laneWidth + (laneWidth - playerSize) / 2;
+}
+
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();  // 初期ロード時にも呼び出し
 
 function startGame() {
     document.getElementById("menu").style.display = "none";
