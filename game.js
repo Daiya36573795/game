@@ -7,7 +7,7 @@ const playerSize = 50;
 const obstacleSize = 50;
 let obstacleSpeed = 5; // 初期速度
 const initialObstacleSpeed = 5;
-const speedIncreaseInterval = 1000; // 1000メートル（フレーム数）
+const speedIncreaseInterval = 500; // 1000メートル（フレーム数）
 const speedIncreaseAmount = 1; // 速度の増加量
 const gravity = 2; // 重力
 const jumpSpeed = 10; // ジャンプ速度
@@ -44,7 +44,7 @@ threeLaneObstacleImage.src = 'images/enemy.png'; // 3レーン障害物の画像
 
 // サウンドエフェクトの追加
 const jumpSound = new Audio('sounds/jump.mp4');
-const hitSound = new Audio('sounds/dmage.mp4');
+const hitSound = new Audio('sounds/hit.mp4');
 const gameOverSound = new Audio('sounds/game_over.mp4');
 
 // BGMの追加
