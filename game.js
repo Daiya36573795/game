@@ -9,18 +9,19 @@ let obstacleSpeed = 5; // 初期速度
 const initialObstacleSpeed = 5;
 const speedIncreaseInterval = 1000; // 1000メートル（フレーム数）
 const speedIncreaseAmount = 1; // 速度の増加量
-const gravity = 2; // 重力を小さくしてジャンプ時間を長くする
-const jumpSpeed = 10; // ジャンプ速度を調整してボタン長押しでの制御をしやすくする
+const gravity = 2; // 重力
+const jumpSpeed = 10; // ジャンプ速度
+const maxJumpHeight = 150; // ジャンプの最大高さを設定
 let lives = 3;
 let distance = 0;
 
 let playerX, playerY, playerLane;
 let obstacleList = [];
-let jump = false;
 let jumpVelocity = 0;
 let moveDirection = 0; // -1: left, 0: no movement, 1: right
 let onGround = true;
 let isJumping = false; // ジャンプボタンを長押ししているかどうか
+let reachedMaxHeight = false; // 最大高さに達したかどうか
 let lastObstacleLane = -1;
 let lastObstacleTime = 0;
 const minObstacleInterval = 60; // フレーム数（約1秒）
@@ -38,6 +39,15 @@ playerImage.src = 'images/player.png'; // プレイヤー画像のパスを指�
 const enemyImage = new Image();
 enemyImage.src = 'images/enemy.png'; // 敵画像のパスを指定
 
+// サウンドエフェクトの追加
+const jumpSound = new Audio('sounds/sound.m4a');
+const hitSound = new Audio('sounds/hsound.m4a');
+const gameOverSound = new Audio('sounds/sound.m4a');
+
+// BGMの追加
+const bgm = new Audio('sounds/sound.m4a');
+bgm.loop = true; // ループ再生設定
+
 backgroundImage.onload = () => {
     console.log("Background image loaded successfully.");
     resizeCanvas();
@@ -54,9 +64,11 @@ document.addEventListener("keydown", (e) => {
     if (e.key === "ArrowRight" && moveDirection === 0) moveDirection = 1;
     if (e.key === " " && onGround && !isJumping) {
         isJumping = true;
-        jump = true;
         jumpVelocity = -jumpSpeed;
         onGround = false;
+        reachedMaxHeight = false;
+        jumpSound.currentTime = 0; // サウンドを再生する前にリセット
+        jumpSound.play(); // ジャンプ時のサウンド再生
     }
 });
 
@@ -80,9 +92,11 @@ canvas.addEventListener('touchstart', function(e) {
         // 中央部分をタップした場合、ジャンプ
         if (onGround && !isJumping) {
             isJumping = true;
-            jump = true;
             jumpVelocity = -jumpSpeed;
             onGround = false;
+            reachedMaxHeight = false;
+            jumpSound.currentTime = 0; // サウンドを再生する前にリセット
+            jumpSound.play(); // ジャンプ時のサウンド再生
         }
     }
 });
@@ -118,11 +132,25 @@ function startGame() {
     obstacleSpeed = initialObstacleSpeed; // 敵の速度を初期化
     moveDirection = 0;
     lastObstacleTime = 0; // 最後に敵が出た時間を初期化
-    jump = false;
     jumpVelocity = 0;
     onGround = true;
     isJumping = false;
+    reachedMaxHeight = false;
+    bgm.currentTime = 0; // BGMを再生する前にリセット
+    bgm.play(); // ゲーム開始時にBGMを再生
     requestAnimationFrame(gameLoop); // ゲームループを開始
+}
+
+function stopAllSounds() {
+    bgm.pause();
+    jumpSound.pause();
+    hitSound.pause();
+    gameOverSound.pause();
+    
+    bgm.currentTime = 0;
+    jumpSound.currentTime = 0;
+    hitSound.currentTime = 0;
+    gameOverSound.currentTime = 0;
 }
 
 function drawPlayer(x, y) {
@@ -189,17 +217,24 @@ function gameLoop() {
 
     // ボタン長押しによるジャンプ制御
     if (isJumping) {
-        jumpVelocity = -jumpSpeed; // 上昇を続ける
+        if (!reachedMaxHeight) {
+            jumpVelocity = -jumpSpeed; // 上昇を続ける
+            playerY += jumpVelocity;
+            if (playerY <= canvas.height - 2 * playerSize - maxJumpHeight) {
+                reachedMaxHeight = true; // 最大高さに達したらフラグを立てる
+                playerY = canvas.height - 2 * playerSize - maxJumpHeight; // 上昇を停止
+                jumpVelocity = 0; // 速度をゼロにして空中で止まる
+            }
+        }
     } else {
         jumpVelocity += gravity; // ジャンプボタンを離したら重力が働く
+        playerY += jumpVelocity;
     }
-
-    playerY += jumpVelocity;
 
     if (playerY >= canvas.height - 2 * playerSize) {
         playerY = canvas.height - 2 * playerSize;
-        jump = false;
         onGround = true;
+        reachedMaxHeight = false; // 地面に着地したら最大高さフラグをリセット
     } else {
         onGround = false;
     }
@@ -220,12 +255,16 @@ function gameLoop() {
                 playerY + playerSize > obstacle[1] &&
                 playerLane === obstacle[2]) {
                 lives--;
+                hitSound.currentTime = 0; // サウンドを再生する前にリセット
+                hitSound.play(); // 衝突時のサウンド再生
                 obstacleList.splice(obstacleList.indexOf(obstacle), 1);
             }
         });
     }
 
     if (lives <= 0) {
+        stopAllSounds(); // ゲームオーバー時にすべてのサウンドを停止
+        // gameOverSound.play(); // ゲームオーバー時のサウンド再生
         document.getElementById("final-distance").textContent = `Distance: ${distance}`;
         document.getElementById("game-over").style.display = "block";
         return;
