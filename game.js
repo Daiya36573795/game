@@ -26,13 +26,17 @@ let lastObstacleTime = 0;
 const minObstacleInterval = 60; // フレーム数（約1秒）
 
 const colors = {
-    player: "rgb(0, 128, 255)",
-    obstacle: "rgb(255, 0, 0)",
     text: "white",
 };
 
 const backgroundImage = new Image();
-backgroundImage.src = 'images\\sky.jpg'; // 正しいパスを指定
+backgroundImage.src = 'images/sky.webp'; // 正しいパスを指定
+
+const playerImage = new Image();
+playerImage.src = 'images/enemy.png'; // プレイヤー画像のパスを指定
+
+const enemyImage = new Image();
+enemyImage.src = 'images/enemy.png'; // 敵画像のパスを指定
 
 backgroundImage.onload = () => {
     console.log("Background image loaded successfully.");
@@ -102,14 +106,12 @@ function startGame() {
 }
 
 function drawPlayer(x, y) {
-    ctx.fillStyle = colors.player;
-    ctx.fillRect(x, y, playerSize, playerSize);
+    ctx.drawImage(playerImage, x, y, playerSize, playerSize);
 }
 
 function drawObstacles(obstacles) {
-    ctx.fillStyle = colors.obstacle;
     obstacles.forEach(obstacle => {
-        ctx.fillRect(obstacle[0], obstacle[1], obstacleSize, obstacleSize);
+        ctx.drawImage(enemyImage, obstacle[0], obstacle[1], obstacleSize, obstacleSize);
     });
 }
 
