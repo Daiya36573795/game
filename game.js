@@ -2,10 +2,13 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
 const laneCount = 3;
-let laneWidth = canvas.width / laneCount;
+let laneWidth;
 const playerSize = 50;
 const obstacleSize = 50;
-const obstacleSpeed = 5;
+let obstacleSpeed = 5; // 初期速度
+const initialObstacleSpeed = 5;
+const speedIncreaseInterval = 500; // 1000メートル（フレーム数）
+const speedIncreaseAmount = 1; // 速度の増加量
 const jumpHeight = 150;
 const gravity = 5;
 const jumpSpeed = 15;
@@ -16,10 +19,11 @@ let playerX, playerY, playerLane;
 let obstacleList = [];
 let jump = false;
 let jumpVelocity = 0;
-let moveLeft = false;
-let moveRight = false;
+let moveDirection = 0; // -1: left, 0: no movement, 1: right
 let onGround = true;
 let lastObstacleLane = -1;
+let lastObstacleTime = 0;
+const minObstacleInterval = 60; // フレーム数（約1秒）
 
 const colors = {
     background: "#000",
@@ -30,8 +34,8 @@ const colors = {
 };
 
 document.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowLeft") moveLeft = true;
-    if (e.key === "ArrowRight") moveRight = true;
+    if (e.key === "ArrowLeft" && moveDirection === 0) moveDirection = -1;
+    if (e.key === "ArrowRight" && moveDirection === 0) moveDirection = 1;
     if (e.key === " " && onGround) {
         jump = true;
         jumpVelocity = -jumpSpeed;
@@ -39,30 +43,31 @@ document.addEventListener("keydown", (e) => {
     }
 });
 
-document.addEventListener("keyup", (e) => {
-    if (e.key === "ArrowLeft") moveLeft = false;
-    if (e.key === "ArrowRight") moveRight = false;
-});
-
 canvas.addEventListener('touchstart', function(e) {
-    const touchX = e.changedTouches[0].clientX;
-    if (touchX < canvas.width / 2) {
-        moveLeft = true;
+    e.preventDefault();
+    const touchX = e.touches[0].clientX - canvas.offsetLeft;
+    if (touchX < canvas.width / 3) {
+        moveDirection = -1;
+    } else if (touchX > canvas.width * 2 / 3) {
+        moveDirection = 1;
     } else {
-        moveRight = true;
+        // 中央部分のタッチでジャンプ
+        if (onGround) {
+            jump = true;
+            jumpVelocity = -jumpSpeed;
+            onGround = false;
+        }
     }
-});
-
-canvas.addEventListener('touchend', function() {
-    moveLeft = false;
-    moveRight = false;
 });
 
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     laneWidth = canvas.width / laneCount;
-    playerX = playerLane * laneWidth + (laneWidth - playerSize) / 2;
+    playerY = canvas.height - 2 * playerSize;
+    if (playerLane !== undefined) {
+        playerX = playerLane * laneWidth + (laneWidth - playerSize) / 2;
+    }
 }
 
 window.addEventListener('resize', resizeCanvas);
@@ -77,6 +82,8 @@ function startGame() {
     obstacleList = [];
     lives = 3;
     distance = 0;
+    obstacleSpeed = initialObstacleSpeed; // ゲーム開始時に初期化
+    moveDirection = 0;
     gameLoop();
 }
 
@@ -92,11 +99,27 @@ function drawObstacles(obstacles) {
     });
 }
 
-function createObstacle(lastLane) {
-    const availableLanes = Array.from({ length: laneCount }, (_, i) => i).filter(i => i !== lastLane);
-    const lane = availableLanes[Math.floor(Math.random() * availableLanes.length)];
-    const xPos = lane * laneWidth + (laneWidth - obstacleSize) / 2;
-    return [xPos, 0, lane];
+function createObstacle() {
+    const currentTime = distance; // distanceをフレームカウンターとして使用
+    if (currentTime - lastObstacleTime < minObstacleInterval) {
+        return null; // 最小間隔を満たしていない場合、nullを返す
+    }
+
+    // 常に二列に障害物を生成
+    let lanes = Array.from({ length: laneCount }, (_, i) => i);
+
+    // 生成するレーンをシャッフルし、先頭から2つ使用する
+    lanes = lanes.sort(() => 0.5 - Math.random()).slice(0, 2);
+
+    const obstacles = lanes.map(lane => {
+        const xPos = lane * laneWidth + (laneWidth - obstacleSize) / 2;
+        return [xPos, 0, lane];
+    });
+
+    lastObstacleLane = lanes[lanes.length - 1];
+    lastObstacleTime = currentTime;
+    
+    return obstacles;
 }
 
 function drawLanes() {
@@ -117,16 +140,12 @@ function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawLanes();
 
-    if (moveLeft && playerLane > 0) {
-        playerLane--;
+    if (moveDirection !== 0) {
+        playerLane += moveDirection;
+        if (playerLane < 0) playerLane = 0;
+        if (playerLane >= laneCount) playerLane = laneCount - 1;
         playerX = playerLane * laneWidth + (laneWidth - playerSize) / 2;
-        moveLeft = false;
-    }
-
-    if (moveRight && playerLane < laneCount - 1) {
-        playerLane++;
-        playerX = playerLane * laneWidth + (laneWidth - playerSize) / 2;
-        moveRight = false;
+        moveDirection = 0;
     }
 
     if (jump) {
@@ -139,8 +158,11 @@ function gameLoop() {
         }
     }
 
-    if (Math.random() < 0.02) {
-        obstacleList.push(createObstacle(lastObstacleLane));
+    if (Math.random() < 0.05) {
+        const newObstacles = createObstacle();
+        if (newObstacles) {
+            obstacleList.push(...newObstacles); // 複数の障害物をリストに追加
+        }
     }
 
     obstacleList.forEach(obstacle => obstacle[1] += obstacleSpeed);
@@ -159,15 +181,20 @@ function gameLoop() {
     if (lives <= 0) {
         document.getElementById("final-distance").textContent = `Distance: ${distance}`;
         document.getElementById("game-over").style.display = "block";
-        return;
+        return; // ゲームループを終了する
     }
 
     distance++;
 
+    // 1000メートルごとに速度を増加させる
+    if (distance % speedIncreaseInterval === 0) {
+        obstacleSpeed += speedIncreaseAmount;
+    }
+
     drawPlayer(playerX, playerY);
     drawObstacles(obstacleList);
     drawText(`Distance: ${distance}`, 150, 50);
-    drawText(`Lives: ${lives}`, 650, 50);
+    drawText(`Lives: ${lives}`, canvas.width - 150, 50);
 
     requestAnimationFrame(gameLoop);
 }
