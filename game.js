@@ -7,7 +7,7 @@ const playerSize = 50;
 const obstacleSize = 50;
 let obstacleSpeed = 5; // 初期速度
 const initialObstacleSpeed = 5;
-const speedIncreaseInterval = 500; // 1000メートル（フレーム数）
+const speedIncreaseInterval = 1000; // 1000メートル（フレーム数）
 const speedIncreaseAmount = 1; // 速度の増加量
 const jumpHeight = 150;
 const gravity = 5;
@@ -82,9 +82,13 @@ function startGame() {
     obstacleList = [];
     lives = 3;
     distance = 0;
-    obstacleSpeed = initialObstacleSpeed; // ゲーム開始時に初期化
+    obstacleSpeed = initialObstacleSpeed; // 敵の速度を初期化
     moveDirection = 0;
-    gameLoop();
+    lastObstacleTime = 0; // 最後に敵が出た時間を初期化
+    jump = false;
+    jumpVelocity = 0;
+    onGround = true;
+    requestAnimationFrame(gameLoop); // ゲームループを開始
 }
 
 function drawPlayer(x, y) {
@@ -193,8 +197,12 @@ function gameLoop() {
 
     drawPlayer(playerX, playerY);
     drawObstacles(obstacleList);
-    drawText(`Distance: ${distance}`, 150, 50);
-    drawText(`Lives: ${lives}`, canvas.width - 150, 50);
+
+    // 距離を画面の左上に表示
+    drawText(`Distance: ${distance}`, 100, 40);
+
+    // ライフを画面の右上に表示
+    drawText(`Lives: ${lives}`, canvas.width - 100, 40);
 
     requestAnimationFrame(gameLoop);
 }
