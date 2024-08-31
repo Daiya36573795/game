@@ -47,6 +47,10 @@ const jumpSound = new Audio('sounds/jump.mp4');
 const hitSound = new Audio('sounds/hit.mp4');
 const gameOverSound = new Audio('sounds/game_over.mp4');
 
+// 左右移動時の音声
+const leftMoveSound = new Audio('sounds/left_slide.mp4');
+const rightMoveSound = new Audio('sounds/right_slide.mp4');
+
 // BGMの追加
 const bgm = new Audio('sounds/background.mp4');
 bgm.loop = true; // ループ再生設定
@@ -63,8 +67,16 @@ backgroundImage.onerror = () => {
 
 // ジャンプボタンの長押しを検出
 document.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowLeft" && moveDirection === 0) moveDirection = -1;
-    if (e.key === "ArrowRight" && moveDirection === 0) moveDirection = 1;
+    if (e.key === "ArrowLeft" && moveDirection === 0) {
+        moveDirection = -1;
+        leftMoveSound.currentTime = 0; // サウンドを再生する前にリセット
+        leftMoveSound.play(); // 左移動時のサウンド再生
+    }
+    if (e.key === "ArrowRight" && moveDirection === 0) {
+        moveDirection = 1;
+        rightMoveSound.currentTime = 0; // サウンドを再生する前にリセット
+        rightMoveSound.play(); // 右移動時のサウンド再生
+    }
     if (e.key === " " && onGround && !isJumping) {
         isJumping = true;
         jumpVelocity = -jumpSpeed;
@@ -88,9 +100,13 @@ canvas.addEventListener('touchstart', function(e) {
     if (touchX < canvas.width / 3) {
         // 左側をタップした場合、左に移動
         moveDirection = -1;
+        leftMoveSound.currentTime = 0; // サウンドを再生する前にリセット
+        leftMoveSound.play(); // 左移動時のサウンド再生
     } else if (touchX > canvas.width * 2 / 3) {
         // 右側をタップした場合、右に移動
         moveDirection = 1;
+        rightMoveSound.currentTime = 0; // サウンドを再生する前にリセット
+        rightMoveSound.play(); // 右移動時のサウンド再生
     } else {
         // 中央部分をタップした場合、ジャンプ
         if (onGround && !isJumping) {
