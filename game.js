@@ -14,6 +14,7 @@ const jumpSpeed = 10; // ジャンプ速度
 const maxJumpHeight = 150; // ジャンプの最大高さを設定
 let lives = 3;
 let distance = 0;
+let isGameRunning = false; // ゲームが進行中かどうかを追跡
 
 let playerX, playerY, playerLane;
 let obstacleList = [];
@@ -65,8 +66,10 @@ backgroundImage.onerror = () => {
     console.error("Failed to load background image.");
 };
 
-// ジャンプボタンの長押しを検出
+// ゲーム進行中のときのみ操作音を再生する
 document.addEventListener("keydown", (e) => {
+    if (!isGameRunning) return; // ゲームが進行中でない場合は何もしない
+
     if (e.key === "ArrowLeft" && moveDirection === 0) {
         moveDirection = -1;
         leftMoveSound.currentTime = 0; // サウンドを再生する前にリセット
@@ -88,12 +91,16 @@ document.addEventListener("keydown", (e) => {
 });
 
 document.addEventListener("keyup", (e) => {
+    if (!isGameRunning) return; // ゲームが進行中でない場合は何もしない
+
     if (e.key === " " && isJumping) {
         isJumping = false;
     }
 });
 
 canvas.addEventListener('touchstart', function(e) {
+    if (!isGameRunning) return; // ゲームが進行中でない場合は何もしない
+
     e.preventDefault();
     const touchX = e.touches[0].clientX - canvas.offsetLeft;
 
@@ -121,6 +128,8 @@ canvas.addEventListener('touchstart', function(e) {
 });
 
 canvas.addEventListener('touchend', function(e) {
+    if (!isGameRunning) return; // ゲームが進行中でない場合は何もしない
+
     if (isJumping) {
         isJumping = false;
     }
@@ -140,6 +149,7 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 
 function startGame() {
+    isGameRunning = true; // ゲーム開始時に進行中フラグを立てる
     document.getElementById("menu").style.display = "none";
     document.getElementById("game-over").style.display = "none";
     playerLane = Math.floor(laneCount / 2);
@@ -299,6 +309,7 @@ function gameLoop() {
     });
 
     if (lives <= 0) {
+        isGameRunning = false; // ゲームオーバー時に進行中フラグを下げる
         stopAllSounds(); // ゲームオーバー時にすべてのサウンドを停止
         gameOverSound.play(); // ゲームオーバー時のサウンド再生
         document.getElementById("final-distance").textContent = `Distance: ${distance}`;
