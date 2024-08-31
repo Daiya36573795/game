@@ -26,11 +26,22 @@ let lastObstacleTime = 0;
 const minObstacleInterval = 60; // フレーム数（約1秒）
 
 const colors = {
-    background: "#000",
     player: "rgb(0, 128, 255)",
     obstacle: "rgb(255, 0, 0)",
-    lane: ["#C8C8C8", "#969696", "#C8C8C8"],
     text: "white",
+};
+
+const backgroundImage = new Image();
+backgroundImage.src = 'images\\sky.jpg'; // 正しいパスを指定
+
+backgroundImage.onload = () => {
+    console.log("Background image loaded successfully.");
+    resizeCanvas();
+    document.getElementById("menu").style.display = "block";
+};
+
+backgroundImage.onerror = () => {
+    console.error("Failed to load background image.");
 };
 
 document.addEventListener("keydown", (e) => {
@@ -51,7 +62,6 @@ canvas.addEventListener('touchstart', function(e) {
     } else if (touchX > canvas.width * 2 / 3) {
         moveDirection = 1;
     } else {
-        // 中央部分のタッチでジャンプ
         if (onGround) {
             jump = true;
             jumpVelocity = -jumpSpeed;
@@ -68,10 +78,10 @@ function resizeCanvas() {
     if (playerLane !== undefined) {
         playerX = playerLane * laneWidth + (laneWidth - playerSize) / 2;
     }
+    drawBackground(); // リサイズ時に背景を再描画
 }
 
 window.addEventListener('resize', resizeCanvas);
-resizeCanvas();  // 初期ロード時にも呼び出し
 
 function startGame() {
     document.getElementById("menu").style.display = "none";
@@ -106,13 +116,10 @@ function drawObstacles(obstacles) {
 function createObstacle() {
     const currentTime = distance; // distanceをフレームカウンターとして使用
     if (currentTime - lastObstacleTime < minObstacleInterval) {
-        return null; // 最小間隔を満たしていない場合、nullを返す
+        return null;
     }
 
-    // 常に二列に障害物を生成
     let lanes = Array.from({ length: laneCount }, (_, i) => i);
-
-    // 生成するレーンをシャッフルし、先頭から2つ使用する
     lanes = lanes.sort(() => 0.5 - Math.random()).slice(0, 2);
 
     const obstacles = lanes.map(lane => {
@@ -128,9 +135,13 @@ function createObstacle() {
 
 function drawLanes() {
     for (let i = 0; i < laneCount; i++) {
-        ctx.fillStyle = colors.lane[i];
+        ctx.fillStyle = "rgba(0, 0, 0, 0)"; // 透明にして背景が見えるようにする
         ctx.fillRect(i * laneWidth, 0, laneWidth, canvas.height);
     }
+}
+
+function drawBackground() {
+    ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
 }
 
 function drawText(text, x, y) {
@@ -142,6 +153,8 @@ function drawText(text, x, y) {
 
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    drawBackground(); // 背景を最初に描画
     drawLanes();
 
     if (moveDirection !== 0) {
@@ -165,7 +178,7 @@ function gameLoop() {
     if (Math.random() < 0.05) {
         const newObstacles = createObstacle();
         if (newObstacles) {
-            obstacleList.push(...newObstacles); // 複数の障害物をリストに追加
+            obstacleList.push(...newObstacles);
         }
     }
 
@@ -185,12 +198,11 @@ function gameLoop() {
     if (lives <= 0) {
         document.getElementById("final-distance").textContent = `Distance: ${distance}`;
         document.getElementById("game-over").style.display = "block";
-        return; // ゲームループを終了する
+        return;
     }
 
     distance++;
 
-    // 1000メートルごとに速度を増加させる
     if (distance % speedIncreaseInterval === 0) {
         obstacleSpeed += speedIncreaseAmount;
     }
@@ -198,10 +210,7 @@ function gameLoop() {
     drawPlayer(playerX, playerY);
     drawObstacles(obstacleList);
 
-    // 距離を画面の左上に表示
     drawText(`Distance: ${distance}`, 100, 40);
-
-    // ライフを画面の右上に表示
     drawText(`Lives: ${lives}`, canvas.width - 100, 40);
 
     requestAnimationFrame(gameLoop);
