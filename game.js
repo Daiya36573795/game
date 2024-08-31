@@ -30,10 +30,10 @@ const colors = {
 };
 
 const backgroundImage = new Image();
-backgroundImage.src = 'images/sky.webp'; // 正しいパスを指定
+backgroundImage.src = 'images/sky3.webp'; // 正しいパスを指定
 
 const playerImage = new Image();
-playerImage.src = 'images/enemy.png'; // プレイヤー画像のパスを指定
+playerImage.src = 'images/player.png'; // プレイヤー画像のパスを指定
 
 const enemyImage = new Image();
 enemyImage.src = 'images/enemy.png'; // 敵画像のパスを指定
