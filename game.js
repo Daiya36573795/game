@@ -9,9 +9,8 @@ let obstacleSpeed = 5; // 初期速度
 const initialObstacleSpeed = 5;
 const speedIncreaseInterval = 1000; // 1000メートル（フレーム数）
 const speedIncreaseAmount = 1; // 速度の増加量
-const jumpHeight = 150;
-const gravity = 5;
-const jumpSpeed = 15;
+const gravity = 2; // 重力を小さくしてジャンプ時間を長くする
+const jumpSpeed = 10; // ジャンプ速度を調整してボタン長押しでの制御をしやすくする
 let lives = 3;
 let distance = 0;
 
@@ -21,6 +20,7 @@ let jump = false;
 let jumpVelocity = 0;
 let moveDirection = 0; // -1: left, 0: no movement, 1: right
 let onGround = true;
+let isJumping = false; // ジャンプボタンを長押ししているかどうか
 let lastObstacleLane = -1;
 let lastObstacleTime = 0;
 const minObstacleInterval = 60; // フレーム数（約1秒）
@@ -48,29 +48,48 @@ backgroundImage.onerror = () => {
     console.error("Failed to load background image.");
 };
 
+// ジャンプボタンの長押しを検出
 document.addEventListener("keydown", (e) => {
     if (e.key === "ArrowLeft" && moveDirection === 0) moveDirection = -1;
     if (e.key === "ArrowRight" && moveDirection === 0) moveDirection = 1;
-    if (e.key === " " && onGround) {
+    if (e.key === " " && onGround && !isJumping) {
+        isJumping = true;
         jump = true;
         jumpVelocity = -jumpSpeed;
         onGround = false;
     }
 });
 
+document.addEventListener("keyup", (e) => {
+    if (e.key === " " && isJumping) {
+        isJumping = false;
+    }
+});
+
 canvas.addEventListener('touchstart', function(e) {
     e.preventDefault();
     const touchX = e.touches[0].clientX - canvas.offsetLeft;
+
     if (touchX < canvas.width / 3) {
+        // 左側をタップした場合、左に移動
         moveDirection = -1;
     } else if (touchX > canvas.width * 2 / 3) {
+        // 右側をタップした場合、右に移動
         moveDirection = 1;
     } else {
-        if (onGround) {
+        // 中央部分をタップした場合、ジャンプ
+        if (onGround && !isJumping) {
+            isJumping = true;
             jump = true;
             jumpVelocity = -jumpSpeed;
             onGround = false;
         }
+    }
+});
+
+canvas.addEventListener('touchend', function(e) {
+    if (isJumping) {
+        isJumping = false;
     }
 });
 
@@ -102,6 +121,7 @@ function startGame() {
     jump = false;
     jumpVelocity = 0;
     onGround = true;
+    isJumping = false;
     requestAnimationFrame(gameLoop); // ゲームループを開始
 }
 
@@ -167,14 +187,21 @@ function gameLoop() {
         moveDirection = 0;
     }
 
-    if (jump) {
-        playerY += jumpVelocity;
-        jumpVelocity += gravity;
-        if (playerY >= canvas.height - 2 * playerSize) {
-            playerY = canvas.height - 2 * playerSize;
-            jump = false;
-            onGround = true;
-        }
+    // ボタン長押しによるジャンプ制御
+    if (isJumping) {
+        jumpVelocity = -jumpSpeed; // 上昇を続ける
+    } else {
+        jumpVelocity += gravity; // ジャンプボタンを離したら重力が働く
+    }
+
+    playerY += jumpVelocity;
+
+    if (playerY >= canvas.height - 2 * playerSize) {
+        playerY = canvas.height - 2 * playerSize;
+        jump = false;
+        onGround = true;
+    } else {
+        onGround = false;
     }
 
     if (Math.random() < 0.05) {
@@ -186,16 +213,17 @@ function gameLoop() {
 
     obstacleList.forEach(obstacle => obstacle[1] += obstacleSpeed);
 
-    obstacleList = obstacleList.filter(obstacle => obstacle[1] < canvas.height);
-
-    obstacleList.forEach(obstacle => {
-        if (playerY < obstacle[1] + obstacleSize &&
-            playerY + playerSize > obstacle[1] &&
-            playerLane === obstacle[2]) {
-            lives--;
-            obstacleList.splice(obstacleList.indexOf(obstacle), 1);
-        }
-    });
+    // プレイヤーが地面にいる場合のみ当たり判定を行う
+    if (onGround) {
+        obstacleList.forEach(obstacle => {
+            if (playerY < obstacle[1] + obstacleSize &&
+                playerY + playerSize > obstacle[1] &&
+                playerLane === obstacle[2]) {
+                lives--;
+                obstacleList.splice(obstacleList.indexOf(obstacle), 1);
+            }
+        });
+    }
 
     if (lives <= 0) {
         document.getElementById("final-distance").textContent = `Distance: ${distance}`;
