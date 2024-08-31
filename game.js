@@ -32,7 +32,7 @@ const colors = {
 };
 
 const backgroundImage = new Image();
-backgroundImage.src = 'images/sky3.webp'; // 正しいパスを指定
+backgroundImage.src = 'images/sky4.webp'; // 正しいパスを指定
 
 const playerImage = new Image();
 playerImage.src = 'images/player.png'; // プレイヤー画像のパスを指定
