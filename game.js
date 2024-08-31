@@ -43,12 +43,12 @@ const threeLaneObstacleImage = new Image();
 threeLaneObstacleImage.src = 'images/enemy.png'; // 3レーン障害物の画像のパスを指定
 
 // サウンドエフェクトの追加
-const jumpSound = new Audio('sounds/sound.m4a');
-const hitSound = new Audio('sounds/hsound.m4a');
-const gameOverSound = new Audio('sounds/sound.m4a');
+const jumpSound = new Audio('sounds/jump.mp4');
+const hitSound = new Audio('sounds/dmage.mp4');
+const gameOverSound = new Audio('sounds/game_over.mp4');
 
 // BGMの追加
-const bgm = new Audio('sounds/sound.m4a');
+const bgm = new Audio('sounds/background.mp4');
 bgm.loop = true; // ループ再生設定
 
 backgroundImage.onload = () => {
