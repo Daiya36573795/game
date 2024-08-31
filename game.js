@@ -40,7 +40,7 @@ const enemyImage = new Image();
 enemyImage.src = 'images/enemy.png'; // 通常の敵画像のパスを指定
 
 const threeLaneObstacleImage = new Image();
-threeLaneObstacleImage.src = 'images/sky3.webp'; // 3レーン障害物の画像のパスを指定
+threeLaneObstacleImage.src = 'images/enemy.png'; // 3レーン障害物の画像のパスを指定
 
 // サウンドエフェクトの追加
 const jumpSound = new Audio('sounds/sound.m4a');
