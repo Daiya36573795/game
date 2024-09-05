@@ -27,12 +27,16 @@ let lastObstacleLane = -1;
 let lastObstacleTime = 0;
 const minObstacleInterval = 60; // フレーム数（約1秒）
 
+const stars = [];
+const starCount = 100;
+let scale = 1;
+
+const initialStarSpeed = 1;
+let currentStarSpeed = initialStarSpeed;
+
 const colors = {
     text: "white",
 };
-
-const backgroundImage = new Image();
-backgroundImage.src = 'images/sky4.webp'; // 正しいパスを指定
 
 const playerImage = new Image();
 playerImage.src = 'images/player.png'; // プレイヤー画像のパスを指定
@@ -55,16 +59,6 @@ const rightMoveSound = new Audio('sounds/right_slide.mp4');
 // BGMの追加
 const bgm = new Audio('sounds/background.mp4');
 bgm.loop = true; // ループ再生設定
-
-backgroundImage.onload = () => {
-    console.log("Background image loaded successfully.");
-    resizeCanvas();
-    document.getElementById("menu").style.display = "block";
-};
-
-backgroundImage.onerror = () => {
-    console.error("Failed to load background image.");
-};
 
 // ゲーム進行中のときのみ操作音を再生する
 document.addEventListener("keydown", (e) => {
@@ -138,12 +132,13 @@ canvas.addEventListener('touchend', function(e) {
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    laneWidth = canvas.width / laneCount;
-    playerY = canvas.height - 2 * playerSize;
+    scale = Math.min(canvas.width / 800, canvas.height / 600);
+    laneWidth = (canvas.width / scale) / laneCount;
+    playerY = (canvas.height / scale) - 2 * playerSize;
     if (playerLane !== undefined) {
         playerX = playerLane * laneWidth + (laneWidth - playerSize) / 2;
     }
-    drawBackground(); // リサイズ時に背景を再描画
+    initStars();
 }
 
 window.addEventListener('resize', resizeCanvas);
@@ -154,17 +149,19 @@ function startGame() {
     document.getElementById("game-over").style.display = "none";
     playerLane = Math.floor(laneCount / 2);
     playerX = playerLane * laneWidth + (laneWidth - playerSize) / 2;
-    playerY = canvas.height - 2 * playerSize;
+    playerY = (canvas.height / scale) - 2 * playerSize;
     obstacleList = [];
     lives = 3;
     distance = 0;
     obstacleSpeed = initialObstacleSpeed; // 敵の速度を初期化
+    currentStarSpeed = initialStarSpeed; // 星の速度を初期化
     moveDirection = 0;
     lastObstacleTime = 0; // 最後に敵が出た時間を初期化
     jumpVelocity = 0;
     onGround = true;
     isJumping = false;
     reachedMaxHeight = false;
+    initStars();
     bgm.currentTime = 0; // BGMを再生する前にリセット
     bgm.play(); // ゲーム開始時にBGMを再生
     requestAnimationFrame(gameLoop); // ゲームループを開始
@@ -183,14 +180,20 @@ function stopAllSounds() {
 }
 
 function drawPlayer(x, y) {
+    ctx.save();
+    ctx.scale(scale, scale);
     ctx.drawImage(playerImage, x, y, playerSize, playerSize);
+    ctx.restore();
 }
 
 function drawObstacles(obstacles) {
+    ctx.save();
+    ctx.scale(scale, scale);
     obstacles.forEach(obstacle => {
         const image = obstacle[3] === 'threeLane' ? threeLaneObstacleImage : enemyImage;
-        ctx.drawImage(image, obstacle[0], obstacle[1], obstacle[2], obstacleSize); // 幅を obstacle[2] で指定
+        ctx.drawImage(image, obstacle[0], obstacle[1], obstacle[2], obstacleSize);
     });
+    ctx.restore();
 }
 
 function createObstacle() {
@@ -226,29 +229,62 @@ function createObstacle() {
     return [obstacle];
 }
 
-function drawLanes() {
-    for (let i = 0; i < laneCount; i++) {
-        ctx.fillStyle = "rgba(0, 0, 0, 0)"; // 透明にして背景が見えるようにする
-        ctx.fillRect(i * laneWidth, 0, laneWidth, canvas.height);
+function createStar() {
+    return {
+        x: Math.random() * (canvas.width / scale),
+        y: Math.random() * (canvas.height / scale),
+        radius: Math.random() * 2,
+        speed: Math.random() * 2 + currentStarSpeed
+    };
+}
+
+function initStars() {
+    stars.length = 0; // 既存の星をクリア
+    for (let i = 0; i < starCount; i++) {
+        stars.push(createStar());
     }
 }
 
 function drawBackground() {
-    ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+    ctx.scale(scale, scale);
+    ctx.fillStyle = 'white';
+    stars.forEach(star => {
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    ctx.restore();
+}
+
+function updateStars() {
+    stars.forEach(star => {
+        star.y += star.speed;
+        if (star.y > canvas.height / scale) {
+            Object.assign(star, createStar());
+            star.y = 0;
+        }
+    });
 }
 
 function drawText(text, x, y) {
+    ctx.save();
+    ctx.scale(scale, scale);
     ctx.fillStyle = colors.text;
     ctx.font = "24px Arial";
     ctx.textAlign = "center";
-    ctx.fillText(text, x, y);
+    ctx.fillText(text, x / scale, y / scale);
+    ctx.restore();
 }
 
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    drawBackground(); // 背景を最初に描画
-    drawLanes();
+    updateStars();
+    drawBackground();
 
     if (moveDirection !== 0) {
         playerLane += moveDirection;
@@ -263,9 +299,9 @@ function gameLoop() {
         if (!reachedMaxHeight) {
             jumpVelocity = -jumpSpeed; // 上昇を続ける
             playerY += jumpVelocity;
-            if (playerY <= canvas.height - 2 * playerSize - maxJumpHeight) {
+            if (playerY <= (canvas.height / scale) - 2 * playerSize - maxJumpHeight) {
                 reachedMaxHeight = true; // 最大高さに達したらフラグを立てる
-                playerY = canvas.height - 2 * playerSize - maxJumpHeight; // 上昇を停止
+                playerY = (canvas.height / scale) - 2 * playerSize - maxJumpHeight; // 上昇を停止
                 jumpVelocity = 0; // 速度をゼロにして空中で止まる
             }
         }
@@ -274,8 +310,8 @@ function gameLoop() {
         playerY += jumpVelocity;
     }
 
-    if (playerY >= canvas.height - 2 * playerSize) {
-        playerY = canvas.height - 2 * playerSize;
+    if (playerY >= (canvas.height / scale) - 2 * playerSize) {
+        playerY = (canvas.height / scale) - 2 * playerSize;
         onGround = true;
         reachedMaxHeight = false; // 地面に着地したら最大高さフラグをリセット
     } else {
@@ -296,11 +332,11 @@ function gameLoop() {
         const isThreeLane = obstacle[3] === 'threeLane';
         const canJumpOver = isJumping && isThreeLane; // 3レーン障害物でジャンプ中のみ避けられる
 
-        if ((!canJumpOver || onGround) && // 3レーン障害物以外は地上でのみ当たり判定
-            playerY < obstacle[1] + obstacleSize &&
-            playerY + playerSize > obstacle[1] &&
-            playerX < obstacle[0] + obstacle[2] && // 障害物の幅を考慮した当たり判定
-            playerX + playerSize > obstacle[0]) {
+        if ((!canJumpOver || onGround) &&
+            playerY < (obstacle[1] + obstacleSize) / scale &&
+            (playerY + playerSize) > obstacle[1] / scale &&
+            playerX < (obstacle[0] + obstacle[2]) / scale &&
+            (playerX + playerSize) > obstacle[0] / scale) {
             lives--;
             hitSound.currentTime = 0; // サウンドを再生する前にリセット
             hitSound.play(); // 衝突時のサウンド再生
@@ -321,6 +357,12 @@ function gameLoop() {
 
     if (distance % speedIncreaseInterval === 0) {
         obstacleSpeed += speedIncreaseAmount;
+        // 背景の星の速度も増加させる
+        currentStarSpeed = initialStarSpeed + (obstacleSpeed - initialObstacleSpeed) * 0.5;
+        // 既存の星の速度を更新
+        stars.forEach(star => {
+            star.speed = Math.random() * 2 + currentStarSpeed;
+        });
     }
 
     drawPlayer(playerX, playerY);
@@ -331,3 +373,6 @@ function gameLoop() {
 
     requestAnimationFrame(gameLoop);
 }
+
+// 初期化
+resizeCanvas();
