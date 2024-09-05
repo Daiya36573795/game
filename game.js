@@ -3,15 +3,15 @@ const ctx = canvas.getContext("2d");
 
 const laneCount = 3;
 let laneWidth;
-const playerSize = 50;
-const obstacleSize = 50;
+let playerSize = 50;
+let obstacleSize = 50;
 let obstacleSpeed = 5; // 初期速度
 const initialObstacleSpeed = 5;
 const speedIncreaseInterval = 500; // 1000メートル（フレーム数）
 const speedIncreaseAmount = 1; // 速度の増加量
 const gravity = 2; // 重力
 const jumpSpeed = 10; // ジャンプ速度
-const maxJumpHeight = 150; // ジャンプの最大高さを設定
+let maxJumpHeight = 150; // ジャンプの最大高さを設定
 let lives = 3;
 let distance = 0;
 let isGameRunning = false; // ゲームが進行中かどうかを追跡
@@ -134,6 +134,18 @@ function resizeCanvas() {
     canvas.height = window.innerHeight;
     scale = Math.min(canvas.width / 800, canvas.height / 600);
     laneWidth = (canvas.width / scale) / laneCount;
+    
+    // スマートフォン向けにサイズを調整
+    if (window.innerWidth < 600) {
+        playerSize = 30;
+        obstacleSize = 30;
+        maxJumpHeight = 100;
+    } else {
+        playerSize = 50;
+        obstacleSize = 50;
+        maxJumpHeight = 150;
+    }
+    
     playerY = (canvas.height / scale) - 2 * playerSize;
     if (playerLane !== undefined) {
         playerX = playerLane * laneWidth + (laneWidth - playerSize) / 2;
@@ -274,7 +286,7 @@ function drawText(text, x, y) {
     ctx.save();
     ctx.scale(scale, scale);
     ctx.fillStyle = colors.text;
-    ctx.font = "24px Arial";
+    ctx.font = `${Math.max(16, 24 * scale)}px Arial`; // フォントサイズを調整
     ctx.textAlign = "center";
     ctx.fillText(text, x / scale, y / scale);
     ctx.restore();
@@ -328,20 +340,21 @@ function gameLoop() {
     obstacleList.forEach(obstacle => obstacle[1] += obstacleSpeed);
 
     // プレイヤーが地面にいる場合のみ当たり判定を行う
-    obstacleList.forEach(obstacle => {
+    obstacleList = obstacleList.filter(obstacle => {
         const isThreeLane = obstacle[3] === 'threeLane';
         const canJumpOver = isJumping && isThreeLane; // 3レーン障害物でジャンプ中のみ避けられる
 
         if ((!canJumpOver || onGround) &&
-            playerY < (obstacle[1] + obstacleSize) / scale &&
-            (playerY + playerSize) > obstacle[1] / scale &&
-            playerX < (obstacle[0] + obstacle[2]) / scale &&
-            (playerX + playerSize) > obstacle[0] / scale) {
+            playerY < obstacle[1] + obstacleSize &&
+            playerY + playerSize > obstacle[1] &&
+            playerX < obstacle[0] + obstacle[2] &&
+            playerX + playerSize > obstacle[0]) {
             lives--;
             hitSound.currentTime = 0; // サウンドを再生する前にリセット
             hitSound.play(); // 衝突時のサウンド再生
-            obstacleList.splice(obstacleList.indexOf(obstacle), 1);
+            return false; // 衝突した障害物を削除
         }
+        return obstacle[1] < canvas.height / scale; // 画面外に出た障害物を削除
     });
 
     if (lives <= 0) {
@@ -368,8 +381,8 @@ function gameLoop() {
     drawPlayer(playerX, playerY);
     drawObstacles(obstacleList);
 
-    drawText(`Distance: ${distance}`, 100, 40);
-    drawText(`Lives: ${lives}`, canvas.width - 100, 40);
+    drawText(`Distance: ${distance}`, canvas.width / 4, 40);
+    drawText(`Lives: ${lives}`, canvas.width * 3 / 4, 40);
 
     requestAnimationFrame(gameLoop);
 }
