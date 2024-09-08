@@ -217,12 +217,12 @@ function createObstacle() {
     const obstacleType = Math.random(); // 0から1までのランダムな数を生成
 
     let obstacle;
-    if (obstacleType < 0.33) {
+    if (obstacleType < 0.5) {
         // 1レーンにまたがる障害物
         const lane = Math.floor(Math.random() * laneCount);
         const xPos = lane * laneWidth + (laneWidth - obstacleSize) / 2;
         obstacle = [xPos, 0, obstacleSize, 'singleLane'];
-    } else if (obstacleType < 0.66) {
+    } else if (obstacleType < 0.8) {
         // 2レーンにまたがる障害物
         const lanes = Array.from({ length: laneCount }, (_, i) => i);
         const selectedLanes = lanes.sort(() => 0.5 - Math.random()).slice(0, 2);
