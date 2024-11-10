@@ -1,7 +1,7 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-const laneCount = 3;
+const laneCount = 2; // レーン数を2に変更
 let laneWidth;
 let playerSize = 50;
 let obstacleSize = 50;
@@ -12,7 +12,6 @@ const speedIncreaseAmount = 1; // 速度の増加量
 const gravity = 2; // 重力
 const jumpSpeed = 10; // ジャンプ速度
 let maxJumpHeight = 150; // ジャンプの最大高さを設定
-let lives = 3;
 let distance = 0;
 let isGameRunning = false; // ゲームが進行中かどうかを追跡
 
@@ -25,7 +24,7 @@ let isJumping = false; // ジャンプボタンを長押ししているかどう
 let reachedMaxHeight = false; // 最大高さに達したかどうか
 let lastObstacleLane = -1;
 let lastObstacleTime = 0;
-const minObstacleInterval = 60; // フレーム数（約1秒）
+const minObstacleInterval = 180; // フレーム数（約1秒）
 
 const stars = [];
 const starCount = 100;
@@ -44,11 +43,7 @@ playerImage.src = 'images/player.png'; // プレイヤー画像のパスを指�
 const enemyImage = new Image();
 enemyImage.src = 'images/enemy.png'; // 通常の敵画像のパスを指定
 
-const threeLaneObstacleImage = new Image();
-threeLaneObstacleImage.src = 'images/enemy.png'; // 3レーン障害物の画像のパスを指定
-
 // サウンドエフェクトの追加
-const jumpSound = new Audio('sounds/jump.mp4');
 const hitSound = new Audio('sounds/hit.mp4');
 const gameOverSound = new Audio('sounds/game_over.mp4');
 
@@ -56,9 +51,15 @@ const gameOverSound = new Audio('sounds/game_over.mp4');
 const leftMoveSound = new Audio('sounds/left_slide.mp4');
 const rightMoveSound = new Audio('sounds/right_slide.mp4');
 
+// ジャンプ時のサウンドエフェクトの追加
+const jumpSound = new Audio('sounds/jump.mp4'); // 追加
+
 // BGMの追加
 const bgm = new Audio('sounds/background.mp4');
 bgm.loop = true; // ループ再生設定
+
+// ライフの宣言
+let lives = 3;
 
 // ゲーム進行中のときのみ操作音を再生する
 document.addEventListener("keydown", (e) => {
@@ -74,14 +75,6 @@ document.addEventListener("keydown", (e) => {
         rightMoveSound.currentTime = 0; // サウンドを再生する前にリセット
         rightMoveSound.play(); // 右移動時のサウンド再生
     }
-    if (e.key === " " && onGround && !isJumping) {
-        isJumping = true;
-        jumpVelocity = -jumpSpeed;
-        onGround = false;
-        reachedMaxHeight = false;
-        jumpSound.currentTime = 0; // サウンドを再生する前にリセット
-        jumpSound.play(); // ジャンプ時のサウンド再生
-    }
 });
 
 document.addEventListener("keyup", (e) => {
@@ -92,7 +85,7 @@ document.addEventListener("keyup", (e) => {
     }
 });
 
-canvas.addEventListener('touchstart', function(e) {
+canvas.addEventListener('touchstart', function (e) {
     if (!isGameRunning) return; // ゲームが進行中でない場合は何もしない
 
     e.preventDefault();
@@ -121,7 +114,7 @@ canvas.addEventListener('touchstart', function(e) {
     }
 });
 
-canvas.addEventListener('touchend', function(e) {
+canvas.addEventListener('touchend', function (e) {
     if (!isGameRunning) return; // ゲームが進行中でない場合は何もしない
 
     if (isJumping) {
@@ -134,18 +127,7 @@ function resizeCanvas() {
     canvas.height = window.innerHeight;
     scale = Math.min(canvas.width / 800, canvas.height / 600);
     laneWidth = (canvas.width / scale) / laneCount;
-    
-    // スマートフォン向けにサイズを調整
-    if (window.innerWidth < 600) {
-        playerSize = 30;
-        obstacleSize = 30;
-        maxJumpHeight = 100;
-    } else {
-        playerSize = 50;
-        obstacleSize = 50;
-        maxJumpHeight = 150;
-    }
-    
+
     playerY = (canvas.height / scale) - 2 * playerSize;
     if (playerLane !== undefined) {
         playerX = playerLane * laneWidth + (laneWidth - playerSize) / 2;
@@ -159,11 +141,14 @@ function startGame() {
     isGameRunning = true; // ゲーム開始時に進行中フラグを立てる
     document.getElementById("menu").style.display = "none";
     document.getElementById("game-over").style.display = "none";
-    playerLane = Math.floor(laneCount / 2);
+
+    // プレイヤーの初期レーンをレーン数に応じて中央に配置
+    playerLane = Math.floor(laneCount / 2); // 2レーンの場合、中央はレーン1
     playerX = playerLane * laneWidth + (laneWidth - playerSize) / 2;
     playerY = (canvas.height / scale) - 2 * playerSize;
+
     obstacleList = [];
-    lives = 3;
+    lives = 3; // ライフを初期化
     distance = 0;
     obstacleSpeed = initialObstacleSpeed; // 敵の速度を初期化
     currentStarSpeed = initialStarSpeed; // 星の速度を初期化
@@ -179,12 +164,19 @@ function startGame() {
     requestAnimationFrame(gameLoop); // ゲームループを開始
 }
 
+function goToMenu() {
+    isGameRunning = false;
+    document.getElementById("menu").style.display = "block";
+    document.getElementById("game-over").style.display = "none";
+    stopAllSounds(); // サウンドを停止
+}
+
 function stopAllSounds() {
     bgm.pause();
     jumpSound.pause();
     hitSound.pause();
     gameOverSound.pause();
-    
+
     bgm.currentTime = 0;
     jumpSound.currentTime = 0;
     hitSound.currentTime = 0;
@@ -202,7 +194,7 @@ function drawObstacles(obstacles) {
     ctx.save();
     ctx.scale(scale, scale);
     obstacles.forEach(obstacle => {
-        const image = obstacle[3] === 'threeLane' ? threeLaneObstacleImage : enemyImage;
+        const image = enemyImage;
         ctx.drawImage(image, obstacle[0], obstacle[1], obstacle[2], obstacleSize);
     });
     ctx.restore();
@@ -214,30 +206,13 @@ function createObstacle() {
         return null;
     }
 
-    const obstacleType = Math.random(); // 0から1までのランダムな数を生成
-
-    let obstacle;
-    if (obstacleType < 0.5) {
-        // 1レーンにまたがる障害物
-        const lane = Math.floor(Math.random() * laneCount);
-        const xPos = lane * laneWidth + (laneWidth - obstacleSize) / 2;
-        obstacle = [xPos, 0, obstacleSize, 'singleLane'];
-    } else if (obstacleType < 0.8) {
-        // 2レーンにまたがる障害物
-        const lanes = Array.from({ length: laneCount }, (_, i) => i);
-        const selectedLanes = lanes.sort(() => 0.5 - Math.random()).slice(0, 2);
-        const xPos = Math.min(...selectedLanes) * laneWidth;
-        const width = 2 * laneWidth;
-        obstacle = [xPos, 0, width, 'doubleLane'];
-    } else {
-        // 3レーンにまたがる障害物
-        const xPos = 0; // 左端からスタート
-        const width = laneCount * laneWidth;
-        obstacle = [xPos, 0, width, 'threeLane'];
-    }
+    // 1レーンにまたがる障害物のみ作成
+    const lane = Math.floor(Math.random() * laneCount);
+    const xPos = lane * laneWidth + (laneWidth - obstacleSize) / 2;
+    const obstacle = [xPos, 0, obstacleSize, 'singleLane'];
 
     lastObstacleTime = currentTime;
-    
+
     return [obstacle];
 }
 
@@ -286,13 +261,15 @@ function drawText(text, x, y) {
     ctx.save();
     ctx.scale(scale, scale);
     ctx.fillStyle = colors.text;
-    ctx.font = `${Math.max(16, 24 * scale)}px Arial`; // フォントサイズを調整
+    ctx.font = `${Math.max(16, 20 * scale)}px Arial`; // フォントサイズを調整
     ctx.textAlign = "center";
     ctx.fillText(text, x / scale, y / scale);
     ctx.restore();
 }
 
 function gameLoop() {
+    if (!isGameRunning) return; // ゲームが進行中でない場合はループを停止
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     updateStars();
@@ -306,30 +283,6 @@ function gameLoop() {
         moveDirection = 0;
     }
 
-    // ボタン長押しによるジャンプ制御
-    if (isJumping) {
-        if (!reachedMaxHeight) {
-            jumpVelocity = -jumpSpeed; // 上昇を続ける
-            playerY += jumpVelocity;
-            if (playerY <= (canvas.height / scale) - 2 * playerSize - maxJumpHeight) {
-                reachedMaxHeight = true; // 最大高さに達したらフラグを立てる
-                playerY = (canvas.height / scale) - 2 * playerSize - maxJumpHeight; // 上昇を停止
-                jumpVelocity = 0; // 速度をゼロにして空中で止まる
-            }
-        }
-    } else {
-        jumpVelocity += gravity; // ジャンプボタンを離したら重力が働く
-        playerY += jumpVelocity;
-    }
-
-    if (playerY >= (canvas.height / scale) - 2 * playerSize) {
-        playerY = (canvas.height / scale) - 2 * playerSize;
-        onGround = true;
-        reachedMaxHeight = false; // 地面に着地したら最大高さフラグをリセット
-    } else {
-        onGround = false;
-    }
-
     if (Math.random() < 0.05) {
         const newObstacles = createObstacle();
         if (newObstacles) {
@@ -341,10 +294,8 @@ function gameLoop() {
 
     // プレイヤーが地面にいる場合のみ当たり判定を行う
     obstacleList = obstacleList.filter(obstacle => {
-        const isThreeLane = obstacle[3] === 'threeLane';
-        const canJumpOver = isJumping && isThreeLane; // 3レーン障害物でジャンプ中のみ避けられる
 
-        if ((!canJumpOver || onGround) &&
+        if ((onGround) &&
             playerY < obstacle[1] + obstacleSize &&
             playerY + playerSize > obstacle[1] &&
             playerX < obstacle[0] + obstacle[2] &&

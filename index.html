@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -35,25 +35,98 @@
             z-index: 10;
             width: 100%;
         }
+        #menu {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
         button {
             font-size: 1.2em;
             padding: 10px 20px;
             margin-top: 20px;
             cursor: pointer;
         }
+        select, input {
+            font-size: 1.2em;
+            padding: 10px;
+            margin-top: 20px;
+            width: 50%;
+            max-width: 300px;
+            box-sizing: border-box;
+        }
+        #new-user-input {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
+    
+    <!-- メニュー画面 -->
     <div id="menu">
         <h1>3-Lane Obstacle Avoidance Game</h1>
-        <button onclick="startGame()">Start Game</button>
+        <select id="username-select" onchange="handleUserSelection()">
+            <option value="Guest" selected>Play without setting a player</option> <!-- デフォルトで選択可能に設定 -->
+            <option value="Player1">Player1</option>
+            <option value="Player2">Player2</option>
+            <option value="Player3">Player3</option>
+            <option value="Player4">Player4</option>
+            <option value="newUser">New User</option>
+        </select>
+        <input type="text" id="new-user-input" placeholder="Enter new user name" />
+        <button onclick="confirmUsername()">Start Game</button>
     </div>
+    
+    <!-- ゲームオーバー画面 -->
     <div id="game-over" style="display:none;">
         <h1>Game Over</h1>
         <p id="final-distance"></p>
         <button onclick="startGame()">Restart Game</button>
+        <button onclick="goToMenu()">Return to Menu</button>
     </div>
+    
+    <script>
+        let username = "Guest"; // デフォルトのユーザ名を "Guest" に設定
+
+        function handleUserSelection() {
+            const selectElement = document.getElementById("username-select");
+            const newUserInput = document.getElementById("new-user-input");
+            if (selectElement.value === "newUser") {
+                newUserInput.style.display = "block"; // 新規ユーザ入力フィールドを表示
+            } else {
+                newUserInput.style.display = "none";  // 新規ユーザ入力フィールドを非表示
+            }
+        }
+
+        function confirmUsername() {
+            const selectElement = document.getElementById("username-select");
+            const newUserInput = document.getElementById("new-user-input");
+            if (selectElement.value === "newUser" && newUserInput.value.trim() !== "") {
+                username = newUserInput.value.trim(); // 新規ユーザ名を取得
+            } else if (selectElement.value !== "") {
+                username = selectElement.value; // 選択された既存ユーザ名を取得
+            } else {
+                username = "Guest"; // デフォルトのゲストユーザ名を設定
+            }
+            startGame();
+        }
+
+        function startGame() {
+            document.getElementById("menu").style.display = "none";
+            document.getElementById("game-over").style.display = "none";
+            console.log("Game started with username: " + username);
+            // ここにゲーム開始のコードを追加
+        }
+
+        function goToMenu() {
+            document.getElementById("menu").style.display = "block";
+            document.getElementById("game-over").style.display = "none";
+            // ゲームリセットロジックをここに追加
+        }
+    </script>
+
     <script src="game.js"></script>
 </body>
 </html>
