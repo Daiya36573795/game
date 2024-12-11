@@ -1,3 +1,125 @@
+async function fetchAndDisplayUsers() {
+    const apiUrl = "https://game-api-daiya36573795-daiyas-projects.vercel.app/api/get-unique-users.ts";
+    const userSelectElement = document.getElementById("username-select");
+
+    try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+            throw new Error(`HTTPエラー: ${response.status}`);
+        }
+
+        const data = await response.json(); // 例: ["aika", "tuchida"]
+
+        // データを<option>に追加
+        data.forEach(name => {
+            const option = document.createElement("option");
+            option.value = name; // value属性にnameを設定
+            option.textContent = name; // 表示テキストにnameを設定
+            userSelectElement.appendChild(option); // <select>に追加
+        });
+    } catch (error) {
+        console.error("データの取得中にエラーが発生しました:", error);
+
+        // エラー表示を画面に追加
+        const errorMessage = document.createElement("p");
+        errorMessage.textContent = "データの取得に失敗しました。";
+        document.body.appendChild(errorMessage);
+    }
+}
+
+async function submitScore(name, distance) {
+    const apiUrl = "https://game-api-daiya36573795-daiyas-projects.vercel.app/api/add-score.ts"; // APIエンドポイントを指定
+
+    try {
+        const response = await fetch(apiUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ name, distance }), // リクエストボディにデータを設定
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`エラー: ${errorData.error}`);
+        }
+
+        const result = await response.json();
+        console.log("APIのレスポンス:", result);
+
+        // 成功メッセージを表示
+        alert("スコアが登録されました！\n" + JSON.stringify(result.data));
+
+        return true; // 成功時に true を返す
+    } catch (error) {
+        console.error("API呼び出しエラー:", error);
+        alert("スコア登録中にエラーが発生しました。\n" + error.message);
+
+        return false; // エラー時に false を返す
+    }
+}
+
+
+async function fetchAndDisplayScores(name) {
+    if (!name) {
+        console.error("名前が必要です。");
+        return;
+    }
+
+    const apiUrl = `https://game-api-daiya36573795-daiyas-projects.vercel.app/api/get-scores?name=${encodeURIComponent(name)}`;
+
+    try {
+        const response = await fetch(apiUrl, {
+            method: "GET",
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error("エラー:", errorData.error);
+            return;
+        }
+
+        const data = await response.json(); // APIデータを取得
+        console.log("取得したデータ:", data);
+
+        // データを<li>に格納して表示
+        const listElement = document.getElementById("ranking-list");
+
+        // リストを初期化
+        listElement.innerHTML = "";
+
+        // 各スコアデータを<li>として追加
+        data.forEach((score) => {
+            const listItem = document.createElement("li");
+            listItem.textContent = `Name: ${score.name}, Distance: ${score.distance}, Date: ${score.date}`;
+            listElement.appendChild(listItem);
+        });
+    } catch (error) {
+        console.error("API呼び出し中にエラーが発生しました:", error);
+    }
+}
+
+async function handleScoreSubmission(savedUsername, distance) {
+    // スコアをDBに登録
+    const isSubmitted = await submitScore(savedUsername, distance);
+
+    console.log(isSubmitted);
+
+    if (isSubmitted) {
+        // 登録が成功した場合にスコア一覧を取得
+        await fetchAndDisplayScores(savedUsername);
+    } else {
+        console.error("スコア登録に失敗したため、取得処理をスキップします。");
+    }
+}
+
+// ページロード時に実行
+document.addEventListener("DOMContentLoaded", fetchAndDisplayUsers);
+
+
+// -------------------------------------------------------------------------------------------
+
+
 // キャンバスと描画コンテキストの取得
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
@@ -52,9 +174,6 @@ const gameOverSound = new Audio('sounds/game_over.mp4');
 // 左右移動時の音声
 const leftMoveSound = new Audio('sounds/left_slide.mp4');
 const rightMoveSound = new Audio('sounds/right_slide.mp4');
-
-// ジャンプ時のサウンドエフェクト
-const jumpSound = new Audio('sounds/jump.mp4');
 
 // キーボード入力の処理
 document.addEventListener("keydown", (e) => {
@@ -142,13 +261,11 @@ function stopAllSounds() {
     gameOverSound.pause();
     leftMoveSound.pause();
     rightMoveSound.pause();
-    jumpSound.pause();
 
     hitSound.currentTime = 0;
     gameOverSound.currentTime = 0;
     leftMoveSound.currentTime = 0;
     rightMoveSound.currentTime = 0;
-    jumpSound.currentTime = 0;
 }
 
 // プレイヤーを描画
@@ -298,6 +415,9 @@ function gameLoop() {
         gameOverSound.play(); // ゲームオーバー時のサウンド再生
         document.getElementById("final-distance").textContent = `Distance: ${distance}`; // 最終距離を表示
         document.getElementById("game-over").style.display = "block"; // ゲームオーバー画面を表示
+
+        const savedUsername = localStorage.getItem('selectedUsername') || "Guest";
+        handleScoreSubmission(savedUsername, distance);
         return;
     }
 

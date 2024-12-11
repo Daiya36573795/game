@@ -65,6 +65,46 @@
             display: none;
             margin: 0 auto;
         }
+
+        /* ランキング用のスタイル */
+        #ranking-list {
+            list-style: none;
+            padding: 0;
+            margin: 20px auto;
+            /* 中央揃え */
+            text-align: left;
+            max-width: 300px;
+            max-height: 200px;
+            /* 高さを固定 */
+            overflow-y: auto;
+            /* 縦方向にスクロール可能にする */
+            border: 2px solid #444;
+            /* オプション: ボーダーを追加して見やすく */
+            border-radius: 5px;
+            /* オプション: 角を丸くする */
+            background-color: #111;
+            /* オプション: 背景色を設定 */
+        }
+
+        #ranking-list li {
+            padding: 10px;
+            border-bottom: 1px solid #444;
+        }
+
+        /* スクロールバーのスタイルをカスタマイズ（オプション） */
+        #ranking-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #ranking-list::-webkit-scrollbar-track {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        #ranking-list::-webkit-scrollbar-thumb {
+            background-color: #555;
+            border-radius: 4px;
+        }
     </style>
 </head>
 
@@ -76,10 +116,6 @@
         <h1>3-Lane Obstacle Avoidance Game</h1>
         <select id="username-select" onchange="handleUserSelection()">
             <option value="Guest" selected>Play without setting a player</option>
-            <option value="Player1">Player1</option>
-            <option value="Player2">Player2</option>
-            <option value="Player3">Player3</option>
-            <option value="Player4">Player4</option>
             <option value="newUser">New User</option>
         </select>
         <input type="text" id="new-user-input" placeholder="Enter new user name" />
@@ -89,8 +125,14 @@
     <!-- ゲームオーバー画面 -->
     <div id="game-over" style="display:none;">
         <h1>Game Over</h1>
-        <p id="final-distance"></p>
-        <p id="final-username"></p> <!-- ユーザ名を表示する要素 -->
+        <p id="final-distance">You traveled 150 meters.</p>
+        <p id="final-username">Player: JohnDoe</p> <!-- ユーザ名を表示する要素 -->
+
+        <!-- ランキング表示セクション -->
+        <h2>RANKING</h2>
+        <ol id="ranking-list">
+        </ol>
+
         <button onclick="startGame()">Restart Game</button>
         <button onclick="goToMenu()">Return to Menu</button>
     </div>
@@ -153,6 +195,8 @@
             // ゲームリセットロジックをここに追加
             // 例: resetGame();
         }
+
+
     </script>
 
     <!-- ゲームのロジックを含むスクリプト -->
