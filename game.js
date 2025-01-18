@@ -91,7 +91,7 @@ async function fetchAndDisplayScores(name) {
         // 各スコアデータを<li>として追加
         data.forEach((score) => {
             const listItem = document.createElement("li");
-            listItem.textContent = `Name: ${score.name}, Distance: ${score.distance}, Date: ${score.date}`;
+            listItem.textContent = `Distance: ${score.distance}`;
             listElement.appendChild(listItem);
         });
     } catch (error) {
@@ -159,7 +159,9 @@ const colors = {
 
 // 画像オブジェクトの作成と画像の読み込み
 const playerImage = new Image();
-playerImage.src = 'images/player.png'; // プレイヤー画像のパスを指定
+
+const savedCharacter = localStorage.getItem('selectedCharacter') || "player1.png";
+playerImage.src = `images/${savedCharacter}`; // プレイヤー画像のパスを指定
 
 const enemyImage = new Image();
 enemyImage.src = 'images/enemy.png'; // 敵（障害物）画像のパスを指定
@@ -413,11 +415,14 @@ function gameLoop() {
     if (lives <= 0) {
         isGameRunning = false; // ゲームを停止
         gameOverSound.play(); // ゲームオーバー時のサウンド再生
-        document.getElementById("final-distance").textContent = `Distance: ${distance}`; // 最終距離を表示
-        document.getElementById("game-over").style.display = "block"; // ゲームオーバー画面を表示
 
         const savedUsername = localStorage.getItem('selectedUsername') || "Guest";
         handleScoreSubmission(savedUsername, distance);
+
+        document.getElementById("final-distance").textContent = `Distance: ${distance}`; // 最終距離を表示
+        document.getElementById("final-username").textContent = `Player: ${savedUsername}`; // 最終距離を表示
+        document.getElementById("game-over").style.display = "block"; // ゲームオーバー画面を表示
+
         return;
     }
 

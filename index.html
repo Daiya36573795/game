@@ -35,13 +35,18 @@
         }
 
         #menu,
-        #game-over {
+        #game-over,
+        #delete-player {
             position: absolute;
             text-align: center;
             z-index: 10;
             width: 100%;
             top: 50%;
-            transform: translateY(-50%);
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
         }
 
         button {
@@ -105,6 +110,53 @@
             background-color: #555;
             border-radius: 4px;
         }
+
+        /* プレイヤー削除ボタンのスタイル */
+        #delete-player-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10;
+            font-size: 1em;
+            padding: 10px 15px;
+            cursor: pointer;
+            background-color: #444;
+            border: none;
+            border-radius: 5px;
+            color: #fff;
+        }
+
+        /* プレイヤー削除画面のスタイル */
+        #delete-player {
+            display: none;
+        }
+
+        /* キャラクター選択セクションのスタイル */
+        #character-selection {
+            margin-top: 20px;
+        }
+
+        .character-options {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .character-option {
+            width: 80px;
+            height: 80px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            transition: border 0.3s;
+        }
+
+        .character-option.selected {
+            border: 2px solid #fff;
+            /* 選択されたキャラクターの枠を白に設定 */
+        }
     </style>
 </head>
 
@@ -114,6 +166,19 @@
     <!-- メニュー画面 -->
     <div id="menu">
         <h1>3-Lane Obstacle Avoidance Game</h1>
+
+        <!-- キャラクター選択 -->
+        <div id="character-selection">
+            <h2>Select player</h2>
+            <div class="character-options">
+                <img src="images/player.png" alt="キャラクター1" class="character-option selected"
+                    onclick="selectCharacter('player.png')">
+                <img src="images/enemy.png" alt="キャラクター2" class="character-option"
+                    onclick="selectCharacter('enemy.png')">
+                <!-- 追加のキャラクター画像 -->
+            </div>
+        </div>
+
         <select id="username-select" onchange="handleUserSelection()">
             <option value="Guest" selected>Play without setting a player</option>
             <option value="newUser">New User</option>
@@ -141,6 +206,56 @@
         // グローバルスコープでusernameを宣言
         var username = "Guest"; // デフォルトのユーザ名を "Guest" に設定
 
+        // 初期化関数
+        function initialize() {
+            // ユーザーリストをlocalStorageから取得、なければ初期化
+            let users = JSON.parse(localStorage.getItem('users'));
+            if (!users) {
+                users = ["Guest"];
+                localStorage.setItem('users', JSON.stringify(users));
+            }
+
+            populateUserSelect();
+        }
+
+        // ユーザー選択ドロップダウンを更新
+        function populateUserSelect() {
+            const selectElement = document.getElementById("username-select");
+            // 既存のオプションをクリア
+            selectElement.innerHTML = '<option value="Guest" selected>Play without setting a player</option><option value="newUser">New User</option>';
+
+            const users = JSON.parse(localStorage.getItem('users')) || ["Guest"];
+            users.forEach(user => {
+                if (user !== "Guest") { // Guestは既に追加済み
+                    const option = document.createElement("option");
+                    option.value = user;
+                    option.textContent = user;
+                    // 新規ユーザーオプションの前に挿入
+                    selectElement.insertBefore(option, selectElement.lastElementChild);
+                }
+            });
+        }
+
+        //デフォルトキャラクターを設定
+        var selectedCharacter = "player.png";
+        // キャラクターを選択する関数
+        function selectCharacter(character) {
+            selectedCharacter = character;
+            console.log("選択されたキャラクター:", selectedCharacter);
+
+            // すべてのキャラクター画像から 'selected' クラスを削除
+            const characterOptions = document.querySelectorAll('.character-option');
+            characterOptions.forEach(option => {
+                option.classList.remove('selected');
+            });
+
+            // 選択されたキャラクターに 'selected' クラスを追加
+            const selectedOption = document.querySelector(`.character-option[src="images/${character}"]`);
+            if (selectedOption) {
+                selectedOption.classList.add('selected');
+            }
+        }
+
         function handleUserSelection() {
             const selectElement = document.getElementById("username-select");
             const newUserInput = document.getElementById("new-user-input");
@@ -154,18 +269,39 @@
         function confirmUsername() {
             const selectElement = document.getElementById("username-select");
             const newUserInput = document.getElementById("new-user-input");
-            if (selectElement.value === "newUser" && newUserInput.value.trim() !== "") {
-                username = newUserInput.value.trim(); // 新規ユーザ名を取得
-            } else if (selectElement.value !== "") {
-                username = selectElement.value; // 選択された既存ユーザ名を取得
+            let selectedUser = selectElement.value;
+
+            if (selectedUser === "newUser") {
+                const newUsername = newUserInput.value.trim();
+                if (newUsername === "") {
+                    alert("Please enter a valid user name.");
+                    return;
+                }
+
+                // ユーザーリストに追加
+                let users = JSON.parse(localStorage.getItem('users')) || ["Guest"];
+                if (users.includes(newUsername)) {
+                    alert("User already exists. Please choose a different name.");
+                    return;
+                }
+
+                users.push(newUsername);
+                localStorage.setItem('users', JSON.stringify(users));
+                username = newUsername;
+            } else if (selectedUser) {
+                username = selectedUser;
             } else {
                 username = "Guest"; // デフォルトのゲストユーザ名を設定
             }
 
-            // ローカルストレージに保存
+            // 選択されたユーザ名を保存
+            // 選択されたキャラクターを保存
             localStorage.setItem('selectedUsername', username);
+            localStorage.setItem('selectedCharacter', selectedCharacter);
 
             console.log("Selected username: " + username); // 選択されたユーザ名をログに表示
+            console.log("Selected player: " + selectedCharacter); // 選択されたユーザ名をログに表示
+
             startGame();
         }
 
@@ -176,6 +312,7 @@
             console.log("Game started with username: " + savedUsername); // ゲーム開始時のログ
             document.getElementById("menu").style.display = "none";
             document.getElementById("game-over").style.display = "none";
+            document.getElementById("delete-player").style.display = "none";
             // ここにゲーム開始のコードを追加
             // 例: initializeGame();
         }
@@ -187,16 +324,22 @@
             document.getElementById("game-over").style.display = "block";
 
             console.log("Game Over. Player: " + username + ", Distance: " + distance); // デバッグ用ログ
+            // ここにランキング表示のコードを追加
+            // 例: updateRanking(distance);
         }
 
         function goToMenu() {
             document.getElementById("menu").style.display = "block";
             document.getElementById("game-over").style.display = "none";
+            document.getElementById("delete-player").style.display = "none";
+            // ユーザー選択ドロップダウンを再度更新
+            populateUserSelect();
             // ゲームリセットロジックをここに追加
             // 例: resetGame();
         }
 
-
+        // 初期化を実行
+        window.onload = initialize;
     </script>
 
     <!-- ゲームのロジックを含むスクリプト -->
