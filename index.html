@@ -237,10 +237,11 @@
         }
 
         //デフォルトキャラクターを設定
-        var selectedCharacter = "player.png";
+        localStorage.setItem('selectedCharacter', "player.png");
         // キャラクターを選択する関数
         function selectCharacter(character) {
             selectedCharacter = character;
+            localStorage.setItem('selectedCharacter', selectedCharacter);
             console.log("選択されたキャラクター:", selectedCharacter);
 
             // すべてのキャラクター画像から 'selected' クラスを削除
