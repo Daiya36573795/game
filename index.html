@@ -237,7 +237,8 @@
         }
 
         //デフォルトキャラクターを設定
-        localStorage.setItem('selectedCharacter', "player.png");
+        var selectedCharacter = "player.png";
+        localStorage.setItem('selectedCharacter', selectedCharacter);
         // キャラクターを選択する関数
         function selectCharacter(character) {
             selectedCharacter = character;
